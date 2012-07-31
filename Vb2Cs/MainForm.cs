@@ -24,11 +24,108 @@ namespace Vb2Cs
 
         private void textBox1_TextChanged(object sender, EventArgs e)
         {
-            DoConvert(textBox1.Text);
+            StartConvertation();
         }
 
-        private void DoConvert(string vbText)
+        private void StartConvertation()
         {
+            //if (signatureRBtn.Checked)
+            //    DoConvertSignature(textBox1.Text);
+            //else if (dataAccessRBtn.Checked)
+            //    DoConvertDataAccess(textBox1.Text);
+            string src = textBox1.Text;
+            string firstLine = src.Split((char)0x0D)[0];
+            string funStr = DoConvertSignature(firstLine);
+            string parStr = DoConvertDataAccess(src);
+
+            StringBuilder sb = new StringBuilder();
+            if (funStr != "")
+            {
+                sb.AppendLine(funStr);
+                sb.AppendLine("{");
+            }
+            sb.AppendLine(parStr);
+            if (funStr != "")
+            {
+                sb.AppendLine("}");
+            }
+            textBox2.Text = sb.ToString();
+        }
+        
+        private string DoConvertDataAccess(string vbText)
+        {
+            string[] lines = vbText.Split((char)0x0D, (char)0x0A);
+            List<string> parameters = new List<string>();
+            bool hasRecordset = false;
+            string command = string.Empty;
+            List<string> vbCommentedCode = new List<string>();
+            foreach (string lineItem in lines)
+            {
+                string line = lineItem.Trim();
+                if (string.IsNullOrEmpty(line)) continue;
+                if (line.IndexOf("CreateParameter") >= 0)
+                {
+                    int lastSpacePos = line.LastIndexOf(", ");
+                    string lastParamName = line.Substring(lastSpacePos+2).TrimEnd(')');
+                    parameters.Add(lastParamName);
+                    vbCommentedCode.Add("// " + line);
+
+                }
+                else if (line.IndexOf("Recordset") >= 0)
+                {
+                    hasRecordset = true;
+                    vbCommentedCode.Add("// " + line);
+                }
+                else if (line.IndexOf("CommandText") >= 0)
+                {
+                    Regex procNameEx = new Regex("(?<=\\\")[^\"]+?(?=\\\")");
+                    command = procNameEx.Match(line).Value;
+                    vbCommentedCode.Add("// " + line);
+                }
+            }
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("// Converted from VB:");
+            foreach (string line in vbCommentedCode)
+                sb.AppendLine(line);
+            sb.AppendLine("\ttry");
+            sb.AppendLine("\t{");
+            
+            if (hasRecordset)
+            {
+                sb.AppendLine("\t\tDataSet dsResult = DBMgr.Wf.ExecuteDataSet(");
+                sb.AppendLine(string.Format("\t\t\t\"{0}\",", command));
+                foreach (string par in parameters)
+                    sb.AppendLine("\t\t\t" + par+",");
+                sb.AppendLine("\t\t\t0);");
+                sb.AppendLine("\t\treturn dsResult[0];");
+            }
+            else
+            {
+                sb.AppendLine("\t\tDBMgr.Wf.ExecuteNonQuery(");
+                sb.Append(string.Format("\t\t\t\"{0}\"", command));
+
+
+                foreach (string par in parameters)
+                {
+                    sb.AppendLine(",");
+                    sb.Append("\t\t\t" + par); ;
+                }
+                sb.AppendLine(");");
+                sb.AppendLine("\t\treturn 0;");
+            }
+            sb.AppendLine("\t}");
+            sb.AppendLine("\tcatch (Exception ex)");
+            sb.AppendLine("\t{");
+            sb.AppendLine("\t\tExceptionWrapper.TraceError(ex);");
+            sb.AppendLine("\t\tthrow ex;");
+            sb.AppendLine("\t}");
+            return sb.ToString();
+        }
+
+        private string DoConvertSignature(string vbText)
+        {
+            if (vbText.IndexOf("Public Function") < 0) return "";
+
             string funcNameEx = "(?<=Public\\sFunction\\s)[^\"]+(?=\\()";
             string parNamesEx = "(?<=ByVal\\s)[^\"]+?(?=\\sAs)";
             string parTypesEx = "(?<=As\\s)[a-zA-Z]+?(?=\\,|\\)|\\s|\\=)";
@@ -36,6 +133,7 @@ namespace Vb2Cs
             string parDefValEx = "(?<=\\=\\s)[^\"]+";
 
             StringBuilder sb = new StringBuilder();
+            sb.AppendLine("// " + vbText);
             sb.Append("public static ");
 
             Regex fNameEx = new Regex(funcNameEx);
@@ -84,18 +182,18 @@ namespace Vb2Cs
 
                 if (i != 0)
                     sb.Append(", ");
-                sb.Append(pt + " ");
+                sb.AppendLine();
+                sb.Append("\t" + pt + " ");
                 sb.Append(pn + defVal);
 
             }
             sb.Append(")");
 
-            sb.Replace((char)0x0D, ' ');
-            sb.Replace((char)0x0A, ' ');
-            sb.Replace("  ", " ");
+            //sb.Replace((char)0x0D, ' ');
+            //sb.Replace((char)0x0A, ' ');
+            //sb.Replace("  ", " ");
 
-
-            textBox2.Text = sb.ToString();
+            return sb.ToString();
         }
     }
 }
