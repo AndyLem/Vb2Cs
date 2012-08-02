@@ -49,14 +49,32 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CodeTransformForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="CodeTransformForm.Designer.cs">
+      <DependentUpon>CodeTransformForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FuncDesc.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Preprocessor.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="StatForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="StatForm.Designer.cs">
+      <DependentUpon>StatForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Transformer.cs" />
+    <EmbeddedResource Include="CodeTransformForm.resx">
+      <DependentUpon>CodeTransformForm.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -69,6 +87,9 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <EmbeddedResource Include="StatForm.resx">
+      <DependentUpon>StatForm.cs</DependentUpon>
+    </EmbeddedResource>
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
