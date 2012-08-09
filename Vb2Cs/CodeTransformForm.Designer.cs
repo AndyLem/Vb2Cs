@@ -36,6 +36,10 @@
             this.copyBtn = new System.Windows.Forms.Button();
             this.pasteBtn = new System.Windows.Forms.Button();
             this.funcInfoBox = new System.Windows.Forms.ListBox();
+            this.forceDataSetBox = new System.Windows.Forms.CheckBox();
+            this.forceUseCmdBox = new System.Windows.Forms.CheckBox();
+            this.wfBox = new System.Windows.Forms.RadioButton();
+            this.realtyBox = new System.Windows.Forms.RadioButton();
             this.SuspendLayout();
             // 
             // vbCodeBox
@@ -116,11 +120,61 @@
             this.funcInfoBox.Size = new System.Drawing.Size(262, 271);
             this.funcInfoBox.TabIndex = 6;
             // 
+            // forceDataSetBox
+            // 
+            this.forceDataSetBox.AutoSize = true;
+            this.forceDataSetBox.Location = new System.Drawing.Point(120, 16);
+            this.forceDataSetBox.Name = "forceDataSetBox";
+            this.forceDataSetBox.Size = new System.Drawing.Size(170, 17);
+            this.forceDataSetBox.TabIndex = 7;
+            this.forceDataSetBox.Text = "Force ExecuteDataSet pattern";
+            this.forceDataSetBox.UseVisualStyleBackColor = true;
+            this.forceDataSetBox.CheckedChanged += new System.EventHandler(this.forceDataSetBox_CheckedChanged);
+            // 
+            // forceUseCmdBox
+            // 
+            this.forceUseCmdBox.AutoSize = true;
+            this.forceUseCmdBox.Location = new System.Drawing.Point(296, 16);
+            this.forceUseCmdBox.Name = "forceUseCmdBox";
+            this.forceUseCmdBox.Size = new System.Drawing.Size(153, 17);
+            this.forceUseCmdBox.TabIndex = 8;
+            this.forceUseCmdBox.Text = "Force DbCommand pattern";
+            this.forceUseCmdBox.UseVisualStyleBackColor = true;
+            this.forceUseCmdBox.CheckedChanged += new System.EventHandler(this.forceUseCmdBox_CheckedChanged);
+            // 
+            // wfBox
+            // 
+            this.wfBox.AutoSize = true;
+            this.wfBox.Checked = true;
+            this.wfBox.Location = new System.Drawing.Point(503, 15);
+            this.wfBox.Name = "wfBox";
+            this.wfBox.Size = new System.Drawing.Size(39, 17);
+            this.wfBox.TabIndex = 9;
+            this.wfBox.TabStop = true;
+            this.wfBox.Text = "Wf";
+            this.wfBox.UseVisualStyleBackColor = true;
+            this.wfBox.CheckedChanged += new System.EventHandler(this.wfBox_CheckedChanged);
+            // 
+            // realtyBox
+            // 
+            this.realtyBox.AutoSize = true;
+            this.realtyBox.Location = new System.Drawing.Point(548, 15);
+            this.realtyBox.Name = "realtyBox";
+            this.realtyBox.Size = new System.Drawing.Size(55, 17);
+            this.realtyBox.TabIndex = 10;
+            this.realtyBox.Text = "Realty";
+            this.realtyBox.UseVisualStyleBackColor = true;
+            this.realtyBox.CheckedChanged += new System.EventHandler(this.realtyBox_CheckedChanged);
+            // 
             // CodeTransformForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(868, 450);
+            this.Controls.Add(this.realtyBox);
+            this.Controls.Add(this.wfBox);
+            this.Controls.Add(this.forceUseCmdBox);
+            this.Controls.Add(this.forceDataSetBox);
             this.Controls.Add(this.funcInfoBox);
             this.Controls.Add(this.pasteBtn);
             this.Controls.Add(this.copyBtn);
@@ -148,6 +202,10 @@
         private System.Windows.Forms.Button copyBtn;
         private System.Windows.Forms.Button pasteBtn;
         private System.Windows.Forms.ListBox funcInfoBox;
+        private System.Windows.Forms.CheckBox forceDataSetBox;
+        private System.Windows.Forms.CheckBox forceUseCmdBox;
+        private System.Windows.Forms.RadioButton wfBox;
+        private System.Windows.Forms.RadioButton realtyBox;
     }
 }
 

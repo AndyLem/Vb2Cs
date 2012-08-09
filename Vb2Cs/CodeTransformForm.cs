@@ -53,7 +53,7 @@ namespace Vb2Cs
                 else
                     funcInfoBox.Items.Add(string.Format("Param is not Valid: {0}", par.CommentedSrc));
             }
-            string codeConversionResult = DoConvertDataAccess(lines, func.Name);
+            string codeConversionResult = DoConvertDataAccess(lines, func.Name, func.ResultType, forceDataSetBox.Checked, forceUseCmdBox.Checked, wfBox.Checked);
 
 
             StringBuilder sb = new StringBuilder();
@@ -175,11 +175,18 @@ namespace Vb2Cs
             return sb.ToString();
         }
 
-        private string DoConvertDataAccess(string[] vbTextLines, string funcName)
+        private string DoConvertDataAccess(
+            string[] vbTextLines, 
+            string funcName, 
+            string funcResType = "", 
+            bool forceDataSet = false,
+            bool useCmd = false, 
+            bool useWf = true)
         {
             List<string> parameters = new List<string>();
             bool hasRecordset = false;
             string command = string.Empty;
+            string resParamName = string.Empty;
             List<string> vbCommentedCode = new List<string>();
             foreach (string lineItem in vbTextLines)
             {
@@ -187,10 +194,32 @@ namespace Vb2Cs
                 if (string.IsNullOrEmpty(line)) continue;
                 if (line.IndexOf("CreateParameter") >= 0)
                 {
-                    int lastSpacePos = line.LastIndexOf(", ");
-                    string lastParamName = line.Substring(lastSpacePos + 2).TrimEnd(')');
-                    parameters.Add(lastParamName);
+                    //int lastSpacePos = line.LastIndexOf(", ");
+                    //string lastParamName = line.Substring(lastSpacePos + 2).TrimEnd(')');
+                    //parameters.Add(lastParamName);
                     vbCommentedCode.Add("// " + line);
+                    
+                    int leftBracketPos = line.IndexOf('(');
+                    int rightBracketPos = line.LastIndexOf(')');
+                    if (leftBracketPos < rightBracketPos)
+                    {
+                        string paramsLine = line.Substring(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1).Trim();
+                        List<FuncDesc.Parameter> paramsList = FuncDesc.ExtractParameters(paramsLine);
+                        bool paramIsOutput = false;
+                        foreach (FuncDesc.Parameter par in paramsList)
+                        {
+                            if (par.Value == "adParamOutput")
+                            {
+                                paramIsOutput = true;
+                            }
+                        }
+                        if (paramIsOutput)
+                        {
+                            parameters.Add("0 /* adParamOutput */");
+                            continue;
+                        }
+                        parameters.Add(paramsList[paramsList.Count - 1].Value);
+                    }
                 }
                 else if (line.IndexOf("New ADODB.Recordset") >= 0)
                 {
@@ -202,6 +231,13 @@ namespace Vb2Cs
                     Regex procNameEx = new Regex("(?<=\\\")[^\"]+?(?=\\\")");
                     command = procNameEx.Match(line).Value;
                     vbCommentedCode.Add("// " + line);
+                }
+                else if (line.IndexOf(funcName + " = ") >= 0)
+                {
+                    Regex resParamNameEx = new Regex("(?<=\\\")[^\"]+?(?=\\\")");
+                    resParamName = resParamNameEx.Match(line).Value;
+                    vbCommentedCode.Add("// " + line);
+                    useCmd = true;
                 }
             }
             StringBuilder sb = new StringBuilder();
@@ -219,10 +255,11 @@ namespace Vb2Cs
                 else dsName = funcName;
             }
 
+            dsName = "ds" + dsName;
 
-            if (hasRecordset)
+            if (hasRecordset || forceDataSet)
             {
-                sb.AppendLine("\t\tDataSet ds" + dsName + " = DBMngr.Wf.ExecuteDataSet(");
+                sb.AppendLine("\t\tDataSet " + dsName + " = DBMngr."+ (useWf ? "Wf" : "Realty") +".ExecuteDataSet(");
                 sb.AppendLine(string.Format("\t\t\t\"{0}\",", command));
                 foreach (string par in parameters)
                 {
@@ -232,11 +269,14 @@ namespace Vb2Cs
                     sb.AppendLine("\t\t\t" + p + ",");
                 }
                 sb.AppendLine("\t\t\t0);");
-                sb.AppendLine("\t\treturn dsResult.Tables[0];");
+                sb.AppendLine("\t\treturn " + dsName + ".Tables[0];");
             }
             else
             {
-                sb.AppendLine("\t\tDBMngr.Wf.ExecuteNonQuery(");
+                if (useCmd)
+                    sb.AppendLine("\t\tDbCommand cmd = DBMngr." + (useWf ? "Wf" : "Realty") + ".GetStoredProcCommand(");
+                else
+                    sb.AppendLine("\t\tDBMngr." + (useWf ? "Wf" : "Realty") + ".ExecuteNonQuery(");
                 sb.Append(string.Format("\t\t\t\"{0}\"", command));
 
 
@@ -246,7 +286,19 @@ namespace Vb2Cs
                     sb.Append("\t\t\t" + par); ;
                 }
                 sb.AppendLine(");");
-                sb.AppendLine("\t\treturn 0;");
+                if (useCmd)
+                {
+                    sb.AppendLine("\t\tDBMngr." + (useWf ? "Wf" : "Realty") + ".ExecuteNonQuery(cmd);");
+                    if (string.IsNullOrEmpty(resParamName))
+                        resParamName = "res_val";
+                    if (string.IsNullOrEmpty(funcResType))
+                        funcResType = "Int32";
+                    else
+                        funcResType = Transformer.TransformTypeToConvert(funcResType);
+                    sb.AppendLine("\t\treturn Convert.To" + funcResType + "(cmd.Parameters[\"" + resParamName + "\"].Value);");
+                }
+                else
+                    sb.AppendLine("\t\treturn 0;");
             }
             sb.AppendLine("\t}");
             sb.AppendLine("\tcatch (Exception ex)");
@@ -339,12 +391,33 @@ namespace Vb2Cs
         private void pasteBtn_Click(object sender, EventArgs e)
         {
             vbCodeBox.Text = Clipboard.GetText();
+            StartConvertation();
         }
 
         private void CodeTransformForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             if (e.CloseReason == CloseReason.UserClosing)
                 e.Cancel = true;
+        }
+
+        private void forceDataSetBox_CheckedChanged(object sender, EventArgs e)
+        {
+            StartConvertation();
+        }
+
+        private void forceUseCmdBox_CheckedChanged(object sender, EventArgs e)
+        {
+            StartConvertation();
+        }
+
+        private void realtyBox_CheckedChanged(object sender, EventArgs e)
+        {
+            StartConvertation();
+        }
+
+        private void wfBox_CheckedChanged(object sender, EventArgs e)
+        {
+            StartConvertation();
         }
     }    
 }

@@ -18,12 +18,18 @@ namespace Vb2Cs
             public bool HasDefaultValue = false;
             public bool Valid = false;
             public string CommentedSrc = string.Empty;
+            public string Value = string.Empty;
 
             public Parameter(string paramString)
             {
                 CommentedSrc = "// " + paramString;
                 int asIndex = paramString.IndexOf("As");
-                if (asIndex < 0) return;
+                if (asIndex < 0)    // Это не сгнатура метода, а вызов, и передано значение параметра
+                {
+                    Value = paramString;
+                    return;
+                }
+                
 
                 string definition = paramString.Substring(0, asIndex).Trim();
                 string typeAndDefault = paramString.Substring(asIndex + 2).Trim();
@@ -102,13 +108,7 @@ namespace Vb2Cs
 
             Name = src.Substring(prefixEndIndex, leftBracketIndex - prefixEndIndex).Trim();
             string paramsLine = src.Substring(leftBracketIndex + 1, rightBracketIndex - leftBracketIndex - 1).Trim();
-            var splittedParams = SplitParams(paramsLine);
-            foreach (string singleParamString in splittedParams)
-            {
-                Parameter par = new Parameter(singleParamString);
-                if (!Transformer.RemoveParam(par.Name))
-                    Parameters.Add(par);
-            }
+            Parameters = ExtractParameters(paramsLine);
             if (!isSub)
             {
                 int lastAsIndex = src.LastIndexOf("As");
@@ -120,12 +120,25 @@ namespace Vb2Cs
                 }
                 else
                 {
-                    ResultType = "-- Type not found --";
+                    ResultType = "__Type_not_found__";
                 }
             }
             else ResultType = "void";
 
             Valid = true;
+        }
+
+        public static List<Parameter> ExtractParameters(string paramsLine)
+        {
+            List<Parameter> res = new List<Parameter>();
+            var splittedParams = SplitParams(paramsLine);
+            foreach (string singleParamString in splittedParams)
+            {
+                Parameter par = new Parameter(singleParamString);
+                if (!Transformer.RemoveParam(par.Name))
+                    res.Add(par);
+            }
+            return res;
         }
 
         private void InitPrefixes()
@@ -136,8 +149,7 @@ namespace Vb2Cs
             _prefixes.Add("Let");
         }
 
-
-        protected List<string> SplitParams(string paramsLine)
+        protected static List<string> SplitParams(string paramsLine)
         {
             List<string> splittedParams = new List<string>();
             int curPos = 0;
@@ -213,7 +225,7 @@ namespace Vb2Cs
             return sb.ToString();
         }
 
-        internal object ToSingleLine()
+        public object ToSingleLine()
         {
             return ToLine(false);
         }
